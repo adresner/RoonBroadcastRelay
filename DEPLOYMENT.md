@@ -9,9 +9,9 @@ and stays idle until you choose to cut over.
 
 | Site | New LXC IP | Existing relay (untouched) | LAN subnet |
 |------|------------|----------------------------|------------|
-| Bangkok | **10.0.3.22** | 10.0.3.20 | 10.0.3.0/24 |
-| HQ | **192.168.1.37** | 192.168.1.30 | 192.168.1.0/24 |
-| Denver | **10.0.2.17** | 10.0.2.14 | 10.0.2.0/24 |
+| Site 1 | **10.0.3.22** | 10.0.3.20 | 10.0.3.0/24 |
+| Site 2 | **192.168.1.37** | 192.168.1.30 | 192.168.1.0/24 |
+| Site 3 | **10.0.2.17** | 10.0.2.14 | 10.0.2.0/24 |
 
 Roon Server stays where it is at 10.0.3.15.
 
@@ -98,9 +98,9 @@ The full URL you'll plug into the prompts in Phase 4 is:
 From your laptop, all three of these must succeed before you start Phase 4:
 
 ```bash
-ssh root@10.0.3.22    # Bangkok new LXC
-ssh root@192.168.1.37 # HQ new LXC
-ssh root@10.0.2.17    # Denver new LXC
+ssh root@10.0.3.22    # Site 1 new LXC
+ssh root@192.168.1.37 # Site 2 new LXC
+ssh root@10.0.2.17    # Site 3 new LXC
 ```
 
 If you don't want to type passwords every step, run
@@ -118,18 +118,18 @@ Before running them, set the GitHub URL once at the top of your head: replace
 every `<YOUR-FORK-URL>` below with
 `https://github.com/<your-github-username>/RoonBroadcastRelay.git`.
 
-### Prompt 1 — Bangkok (new LXC at 10.0.3.22)
+### Prompt 1 — Site 1 (new LXC at 10.0.3.22)
 
 ```
 Deploy the 3-site Roon mesh relay to a fresh Ubuntu LXC over SSH.
 
 Target host:
-- Hostname/role: Bangkok (new mesh relay, parallel to existing 10.0.3.20)
+- Hostname/role: Site 1 (new mesh relay, parallel to existing 10.0.3.20)
 - SSH target: root@10.0.3.22
 - GitHub fork: <YOUR-FORK-URL>
 
 Site identity this LXC should run as:
-- SiteName: "Bangkok"
+- SiteName: "Site 1"
 - LocalIp: 10.0.3.22
 - BroadcastAddress: 10.0.3.255
 - SubnetMask: 255.255.255.0
@@ -166,13 +166,13 @@ before moving on.
    - mkdir -p /opt/roonrelay-mesh
    - cp ./publish/RoonBroadcastRelay /opt/roonrelay-mesh/RoonBroadcastRelay
    - chmod +x /opt/roonrelay-mesh/RoonBroadcastRelay
-   - cp examples-3site/appsettings.Bangkok.json /opt/roonrelay-mesh/appsettings.json
+   - cp examples-3site/appsettings.Site1.json /opt/roonrelay-mesh/appsettings.json
    - cp dist/systemd/roonrelay-mesh.service /etc/systemd/system/
    - systemctl daemon-reload
 
 6. Verify the deployed config without starting the service:
    - cat /opt/roonrelay-mesh/appsettings.json
-   - Confirm SiteName="Bangkok", LocalIp="10.0.3.22",
+   - Confirm SiteName="Site 1", LocalIp="10.0.3.22",
      RemoteRelayIps contains exactly "192.168.1.37" and "10.0.2.17".
 
 7. Confirm the service is registered but NOT enabled or running:
@@ -189,34 +189,34 @@ Do NOT start or enable the service. Do not touch /opt/roonrelay or
 roonrelay.service on this host (there shouldn't be one here, but verify).
 ```
 
-### Prompt 2 — HQ (new LXC at 192.168.1.37)
+### Prompt 2 — Site 2 (new LXC at 192.168.1.37)
 
 Same as Prompt 1, with these substitutions:
 
 ```
-- Hostname/role: HQ (new mesh relay, parallel to existing 192.168.1.30)
+- Hostname/role: Site 2 (new mesh relay, parallel to existing 192.168.1.30)
 - SSH target: root@192.168.1.37
-- SiteName: "HQ"
+- SiteName: "Site 2"
 - LocalIp: 192.168.1.37
 - BroadcastAddress: 192.168.1.255
 - SubnetMask: 255.255.255.0
 - RemoteRelayIps: ["10.0.3.22", "10.0.2.17"]
-- Config file to copy: examples-3site/appsettings.HQ.json
+- Config file to copy: examples-3site/appsettings.Site2.json
 ```
 
-### Prompt 3 — Denver (new LXC at 10.0.2.17)
+### Prompt 3 — Site 3 (new LXC at 10.0.2.17)
 
 Same as Prompt 1, with these substitutions:
 
 ```
-- Hostname/role: Denver (new mesh relay, parallel to existing 10.0.2.14)
+- Hostname/role: Site 3 (new mesh relay, parallel to existing 10.0.2.14)
 - SSH target: root@10.0.2.17
-- SiteName: "Denver"
+- SiteName: "Site 3"
 - LocalIp: 10.0.2.17
 - BroadcastAddress: 10.0.2.255
 - SubnetMask: 255.255.255.0
 - RemoteRelayIps: ["10.0.3.22", "192.168.1.37"]
-- Config file to copy: examples-3site/appsettings.Denver.json
+- Config file to copy: examples-3site/appsettings.Site3.json
 ```
 
 At the end of Phase 4, all three LXCs have everything installed, the right
@@ -312,9 +312,9 @@ RoonBroadcastRelay/                     # source the LXCs build from
 ├── ProtocolSettings.cs                 # unchanged
 └── RoonBroadcastRelay.csproj           # unchanged
 examples-3site/
-├── appsettings.Bangkok.json            # site-specific config
-├── appsettings.HQ.json
-└── appsettings.Denver.json
+├── appsettings.Site1.json            # site-specific config
+├── appsettings.Site2.json
+└── appsettings.Site3.json
 dist/
 ├── systemd/roonrelay-mesh.service      # systemd unit, parallel install
 └── INSTALL.md                          # alternate manual install guide

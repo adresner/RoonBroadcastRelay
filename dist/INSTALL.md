@@ -21,21 +21,21 @@ build, stop it, and the original keeps working unchanged.
 
 | Site | Relay LAN IP | LAN subnet | Tunnel peers |
 |------|--------------|------------|--------------|
-| Bangkok | 10.0.3.20 | 10.0.3.0/24 | 192.168.1.30, 10.0.2.14 |
-| HQ | 192.168.1.30 | 192.168.1.0/24 | 10.0.3.20, 10.0.2.14 |
-| Denver | 10.0.2.14 | 10.0.2.0/24 | 10.0.3.20, 192.168.1.30 |
+| Site 1 | 10.0.3.20 | 10.0.3.0/24 | 192.168.1.30, 10.0.2.14 |
+| Site 2 | 192.168.1.30 | 192.168.1.0/24 | 10.0.3.20, 10.0.2.14 |
+| Site 3 | 10.0.2.14 | 10.0.2.0/24 | 10.0.3.20, 192.168.1.30 |
 
 All three relays speak to each other over UDP `9004`.
 
 ## Prerequisites — do these once, before testing
 
 1. **WireGuard / routing**: each site must be able to reach the other two
-   LAN subnets. In particular, Denver↔Bangkok and Denver↔HQ are new paths
+   LAN subnets. In particular, Site 3↔Site 1 and Site 3↔Site 2 are new paths
    if they did not exist before. Confirm with `ping` from each relay to the
    other two relay IPs.
 2. **Firewall**: UDP `9004` must be permitted in both directions between
-   every pair of relays. Bangkok↔HQ already works for you; add
-   Denver↔Bangkok and Denver↔HQ.
+   every pair of relays. Site 1↔Site 2 already works for you; add
+   Site 3↔Site 1 and Site 3↔Site 2.
 3. **WireGuard AllowedIPs** on each side must include the other LAN subnets
    so traffic actually routes across the tunnels.
 4. Subnets must not overlap (yours don't: 10.0.3.0/24, 192.168.1.0/24,
@@ -43,7 +43,7 @@ All three relays speak to each other over UDP `9004`.
 
 ## Install — run on each of the three relay VMs
 
-These steps are identical on Bangkok, HQ, and Denver except the config and
+These steps are identical on Site 1, Site 2, and Site 3 except the config and
 binary choice.
 
 ```bash
@@ -58,11 +58,11 @@ sudo cp bin/RoonBroadcastRelay-linux-arm64 /opt/roonrelay-mesh/RoonBroadcastRela
 sudo chmod +x /opt/roonrelay-mesh/RoonBroadcastRelay
 
 # 3. Copy the config matching THIS site. Pick ONE:
-sudo cp configs/appsettings.Bangkok.json /opt/roonrelay-mesh/appsettings.json
+sudo cp configs/appsettings.Site1.json /opt/roonrelay-mesh/appsettings.json
 # or
-sudo cp configs/appsettings.HQ.json      /opt/roonrelay-mesh/appsettings.json
+sudo cp configs/appsettings.Site2.json      /opt/roonrelay-mesh/appsettings.json
 # or
-sudo cp configs/appsettings.Denver.json  /opt/roonrelay-mesh/appsettings.json
+sudo cp configs/appsettings.Site3.json  /opt/roonrelay-mesh/appsettings.json
 
 # 4. Install the systemd unit (does not enable it yet)
 sudo cp systemd/roonrelay-mesh.service /etc/systemd/system/roonrelay-mesh.service

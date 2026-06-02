@@ -600,7 +600,7 @@ PersistentKeepalive = 25
 ## Example 4: Three Sites (Full Mesh)
 
 This example covers the three-or-more-site case enabled by the `RemoteRelayIps`
-field. It uses three sites: **Bangkok**, **HQ**, and **Denver**.
+field. It uses three sites: **Site 1**, **Site 2**, and **Site 3**.
 
 ### Why a full mesh
 
@@ -614,11 +614,11 @@ The working topology is a **full mesh**: every relay lists *every other* relay i
 its `RemoteRelayIps`. Each site then reaches each other site directly in one hop.
 
 ```
-            Bangkok  (10.0.3.20)
+            Site 1  (10.0.3.20)
               /   \
              /     \
             /       \
-   HQ (192.168.1.30)──Denver (10.0.2.14)
+   Site 2 (192.168.1.30)──Site 3 (10.0.2.14)
 
    Every relay tunnels to BOTH of the other two.
 ```
@@ -630,15 +630,15 @@ total (3 sites = 3 tunnels). All site subnets must be **non-overlapping**.
 
 | Site | Relay LAN IP | LAN subnet | Tunnel peers (`RemoteRelayIps`) |
 |------|--------------|------------|---------------------------------|
-| Bangkok | 10.0.3.20 | 10.0.3.0/24 | 192.168.1.30, 10.0.2.14 |
-| HQ | 192.168.1.30 | 192.168.1.0/24 | 10.0.3.20, 10.0.2.14 |
-| Denver | 10.0.2.14 | 10.0.2.0/24 | 10.0.3.20, 192.168.1.30 |
+| Site 1 | 10.0.3.20 | 10.0.3.0/24 | 192.168.1.30, 10.0.2.14 |
+| Site 2 | 192.168.1.30 | 192.168.1.0/24 | 10.0.3.20, 10.0.2.14 |
+| Site 3 | 10.0.2.14 | 10.0.2.0/24 | 10.0.3.20, 192.168.1.30 |
 
-### appsettings.json - Bangkok
+### appsettings.json - Site 1
 
 ```json
 {
-  "SiteName": "Bangkok",
+  "SiteName": "Site 1",
   "TunnelPort": 9004,
   "RemoteRelayIps": [
     "192.168.1.30",
@@ -661,11 +661,11 @@ total (3 sites = 3 tunnels). All site subnets must be **non-overlapping**.
 }
 ```
 
-### appsettings.json - HQ
+### appsettings.json - Site 2
 
 ```json
 {
-  "SiteName": "HQ",
+  "SiteName": "Site 2",
   "TunnelPort": 9004,
   "RemoteRelayIps": [
     "10.0.3.20",
@@ -688,11 +688,11 @@ total (3 sites = 3 tunnels). All site subnets must be **non-overlapping**.
 }
 ```
 
-### appsettings.json - Denver
+### appsettings.json - Site 3
 
 ```json
 {
-  "SiteName": "Denver",
+  "SiteName": "Site 3",
   "TunnelPort": 9004,
   "RemoteRelayIps": [
     "10.0.3.20",
@@ -720,9 +720,9 @@ total (3 sites = 3 tunnels). All site subnets must be **non-overlapping**.
 The tunnel (UDP `9004`) must be permitted **between every pair of relays**, in
 both directions. For three sites that is three tunnel paths:
 
-- Bangkok 10.0.3.20 ↔ HQ 192.168.1.30
-- Bangkok 10.0.3.20 ↔ Denver 10.0.2.14
-- HQ 192.168.1.30 ↔ Denver 10.0.2.14
+- Site 1 10.0.3.20 ↔ Site 2 192.168.1.30
+- Site 1 10.0.3.20 ↔ Site 3 10.0.2.14
+- Site 2 192.168.1.30 ↔ Site 3 10.0.2.14
 
 Each site's WireGuard configuration must route to the other two LAN subnets, so
 every relay's subnet appears in the others' `AllowedIPs`. Roadwarrior clients
