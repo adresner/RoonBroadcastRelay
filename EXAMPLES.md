@@ -597,6 +597,153 @@ PersistentKeepalive = 25
 
 ---
 
+## Example 4: Three Sites (Full Mesh)
+
+This example covers the three-or-more-site case enabled by the `RemoteRelayIps`
+field. It uses three sites: **Bangkok**, **HQ**, and **Denver**.
+
+### Why a full mesh
+
+A relay only ever sends LAN packets to the peers listed in its own config, and a
+relay **never re-forwards a packet it received over the tunnel back into the
+tunnel** (this is deliberate loop prevention). Because of that, a hub-and-spoke
+layout does not work for discovery — a spoke's packets would reach the hub but
+never travel on to the other spoke.
+
+The working topology is a **full mesh**: every relay lists *every other* relay in
+its `RemoteRelayIps`. Each site then reaches each other site directly in one hop.
+
+```
+            Bangkok  (10.0.3.20)
+              /   \
+             /     \
+            /       \
+   HQ (192.168.1.30)──Denver (10.0.2.14)
+
+   Every relay tunnels to BOTH of the other two.
+```
+
+For N sites this means each config lists N-1 peers, and there are N(N-1)/2 tunnels
+total (3 sites = 3 tunnels). All site subnets must be **non-overlapping**.
+
+### Components
+
+| Site | Relay LAN IP | LAN subnet | Tunnel peers (`RemoteRelayIps`) |
+|------|--------------|------------|---------------------------------|
+| Bangkok | 10.0.3.20 | 10.0.3.0/24 | 192.168.1.30, 10.0.2.14 |
+| HQ | 192.168.1.30 | 192.168.1.0/24 | 10.0.3.20, 10.0.2.14 |
+| Denver | 10.0.2.14 | 10.0.2.0/24 | 10.0.3.20, 192.168.1.30 |
+
+### appsettings.json - Bangkok
+
+```json
+{
+  "SiteName": "Bangkok",
+  "TunnelPort": 9004,
+  "RemoteRelayIps": [
+    "192.168.1.30",
+    "10.0.2.14"
+  ],
+  "LocalInterfaces": [
+    {
+      "LocalIp": "10.0.3.20",
+      "BroadcastAddress": "10.0.3.255",
+      "SubnetMask": "255.255.255.0"
+    }
+  ],
+  "UnicastTargets": [],
+  "Protocols": {
+    "Raat": true,
+    "AirPlay": true,
+    "Ssdp": true,
+    "Squeezebox": true
+  }
+}
+```
+
+### appsettings.json - HQ
+
+```json
+{
+  "SiteName": "HQ",
+  "TunnelPort": 9004,
+  "RemoteRelayIps": [
+    "10.0.3.20",
+    "10.0.2.14"
+  ],
+  "LocalInterfaces": [
+    {
+      "LocalIp": "192.168.1.30",
+      "BroadcastAddress": "192.168.1.255",
+      "SubnetMask": "255.255.255.0"
+    }
+  ],
+  "UnicastTargets": [],
+  "Protocols": {
+    "Raat": true,
+    "AirPlay": true,
+    "Ssdp": true,
+    "Squeezebox": true
+  }
+}
+```
+
+### appsettings.json - Denver
+
+```json
+{
+  "SiteName": "Denver",
+  "TunnelPort": 9004,
+  "RemoteRelayIps": [
+    "10.0.3.20",
+    "192.168.1.30"
+  ],
+  "LocalInterfaces": [
+    {
+      "LocalIp": "10.0.2.14",
+      "BroadcastAddress": "10.0.2.255",
+      "SubnetMask": "255.255.255.0"
+    }
+  ],
+  "UnicastTargets": [],
+  "Protocols": {
+    "Raat": true,
+    "AirPlay": true,
+    "Ssdp": true,
+    "Squeezebox": true
+  }
+}
+```
+
+### Firewall and WireGuard
+
+The tunnel (UDP `9004`) must be permitted **between every pair of relays**, in
+both directions. For three sites that is three tunnel paths:
+
+- Bangkok 10.0.3.20 ↔ HQ 192.168.1.30
+- Bangkok 10.0.3.20 ↔ Denver 10.0.2.14
+- HQ 192.168.1.30 ↔ Denver 10.0.2.14
+
+Each site's WireGuard configuration must route to the other two LAN subnets, so
+every relay's subnet appears in the others' `AllowedIPs`. Roadwarrior clients
+still need `255.255.255.255/32` and `224.0.0.0/4` in their `AllowedIPs`.
+
+### Backward compatibility
+
+The legacy `RemoteRelayIp` (single string) field still works and is merged with
+`RemoteRelayIps` at startup. A two-site config written for the old binary runs
+unchanged. You can migrate to `RemoteRelayIps` at your own pace — listing the
+same address in both fields is harmless (duplicates are removed). A relay also
+silently ignores any peer address that matches one of its own interfaces.
+
+### Notes
+
+- All relays must have identical `Protocols` settings.
+- Site subnets must not overlap.
+- Add `N-1` peers to each relay's `RemoteRelayIps` (every other site).
+
+---
+
 ## Roon Ports Summary
 
 | Port | Protocol | Purpose |

@@ -46,13 +46,18 @@ namespace RoonBroadcastRelay
         /// <param name="path">Path where the example config file will be created.</param>
         public static void CreateExampleConfig(string path)
         {
-            // Create example configuration with typical settings
-            // This shows a common setup with one LAN interface and two unicast targets
+            // Create example configuration with typical settings.
+            // This shows a three-site full mesh: SiteA lists both other relays
+            // in RemoteRelayIps. For a classic two-site setup, list just one.
             RelayConfig example = new RelayConfig
             {
                 SiteName = "SiteA",
                 TunnelPort = 9004,
-                RemoteRelayIp = "192.168.30.40",
+                RemoteRelayIps = new List<string>
+                {
+                    "192.168.30.40",
+                    "10.0.2.14"
+                },
                 LocalInterfaces = new List<InterfaceConfig>
                 {
                     new InterfaceConfig

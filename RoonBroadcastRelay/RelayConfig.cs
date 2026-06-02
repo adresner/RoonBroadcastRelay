@@ -18,9 +18,19 @@ namespace RoonBroadcastRelay
         public int TunnelPort { get; set; }
 
         /// <summary>
-        /// IP address of the remote relay for tunnel connection. Can be null.
+        /// IP address of a single remote relay for tunnel connection. Can be null.
+        /// Legacy field, kept for backward compatibility with two-site configs.
+        /// For three or more sites use <see cref="RemoteRelayIps"/> instead.
+        /// Any value set here is merged with <see cref="RemoteRelayIps"/> at startup.
         /// </summary>
         public string RemoteRelayIp { get; set; }
+
+        /// <summary>
+        /// IP addresses of all remote relays for tunnel connections. Can be null or empty.
+        /// Use this to build a full mesh across three or more sites: list every other
+        /// relay here. Merged with the legacy <see cref="RemoteRelayIp"/> field at startup.
+        /// </summary>
+        public List<string> RemoteRelayIps { get; set; }
 
         /// <summary>
         /// Local network interfaces for listening and forwarding Roon packets.

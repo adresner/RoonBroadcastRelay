@@ -47,7 +47,7 @@ Example configuration:
 {
   "SiteName": "MainRelay",
   "TunnelPort": 9004,
-  "RemoteRelayIp": "",
+  "RemoteRelayIps": [],
   "LocalInterfaces": [
     {
       "LocalIp": "192.168.1.100",
@@ -65,7 +65,12 @@ Example configuration:
 }
 ```
 
-See [EXAMPLES.md](EXAMPLES.md) for more configuration examples.
+`RemoteRelayIps` lists every other relay this site connects to. For two sites
+it holds one address; for three or more sites it holds every other relay (a full
+mesh). The legacy single-string `RemoteRelayIp` field is still accepted and is
+merged with `RemoteRelayIps` at startup, so existing two-site configs keep
+working unchanged. See [EXAMPLES.md](EXAMPLES.md) for more configuration
+examples, including a three-site full-mesh setup (Example 4).
 
 ### 3. Create systemd service
 

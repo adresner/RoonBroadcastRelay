@@ -61,9 +61,12 @@ namespace RoonBroadcastRelay
         Socket _tunnelSocket;
 
         /// <summary>
-        /// Remote relay endpoint for tunnel communication.
+        /// Remote relay endpoints for tunnel communication.
+        /// Holds one entry per tunnel peer. For a three-or-more-site full mesh
+        /// this contains every other relay; for a classic two-site setup it
+        /// contains a single entry.
         /// </summary>
-        IPEndPoint _remoteRelayEp;
+        readonly List<IPEndPoint> _remoteRelayEps = new List<IPEndPoint>();
 
         /// <summary>
         /// Raw socket for IP spoofing.
@@ -105,10 +108,44 @@ namespace RoonBroadcastRelay
                 }
             }
 
-            // Setup remote relay endpoint
+            // Setup remote relay endpoints (tunnel peers).
+            // The legacy single RemoteRelayIp and the RemoteRelayIps list are
+            // merged here, so existing two-site configs keep working unchanged
+            // while three-or-more-site configs can list every peer.
+            List<string> remoteIps = new List<string>();
             if (!string.IsNullOrEmpty(config.RemoteRelayIp))
             {
-                this._remoteRelayEp = new IPEndPoint(IPAddress.Parse(config.RemoteRelayIp), config.TunnelPort);
+                remoteIps.Add(config.RemoteRelayIp);
+            }
+            if (config.RemoteRelayIps != null)
+            {
+                remoteIps.AddRange(config.RemoteRelayIps);
+            }
+
+            HashSet<IPAddress> seenRemotes = new HashSet<IPAddress>();
+            foreach (string remoteIp in remoteIps)
+            {
+                if (string.IsNullOrEmpty(remoteIp))
+                {
+                    continue;
+                }
+
+                IPAddress remoteAddr = IPAddress.Parse(remoteIp);
+
+                // A relay must never tunnel to itself - skip our own interface IPs.
+                if (this._localIps.Contains(remoteAddr))
+                {
+                    Console.WriteLine($"[{config.SiteName}] WARNING: ignoring remote relay {remoteAddr} (matches a local interface)");
+                    continue;
+                }
+
+                // Skip duplicates so the same peer is not added twice.
+                if (!seenRemotes.Add(remoteAddr))
+                {
+                    continue;
+                }
+
+                this._remoteRelayEps.Add(new IPEndPoint(remoteAddr, config.TunnelPort));
             }
 
             // Initialize enabled protocols from config
@@ -192,11 +229,14 @@ namespace RoonBroadcastRelay
                 Console.WriteLine($"[{this._config.SiteName}] LAN interface: {iface.LocalIp} (broadcast: {iface.BroadcastAddress}, mask: {iface.SubnetMask})");
             }
 
-            // Create tunnel socket if remote relay is configured
-            if (this._remoteRelayEp != null)
+            // Create tunnel socket if at least one remote relay is configured
+            if (this._remoteRelayEps.Count > 0)
             {
                 this._tunnelSocket = this.CreateTunnelSocket();
-                Console.WriteLine($"[{this._config.SiteName}] Remote relay: {this._config.RemoteRelayIp}:{this._config.TunnelPort}");
+                foreach (IPEndPoint remoteEp in this._remoteRelayEps)
+                {
+                    Console.WriteLine($"[{this._config.SiteName}] Remote relay: {remoteEp.Address}:{remoteEp.Port}");
+                }
             }
 
             // Log configured unicast targets
@@ -452,8 +492,15 @@ namespace RoonBroadcastRelay
             // Append original packet data
             Array.Copy(packet, 0, tunnelPacket, 8, packet.Length);
 
-            this._tunnelSocket.SendTo(tunnelPacket, this._remoteRelayEp);
-            Console.WriteLine($"[{this._config.SiteName}] TUNNEL -> {this._remoteRelayEp} (src: {srcIp}:{srcPort}, dstPort: {dstPort})");
+            // Send a copy to every tunnel peer. In a full mesh this delivers the
+            // packet directly to every other site in a single hop, which is why
+            // three-or-more-site setups must list all peers (tunnel packets are
+            // intentionally never re-forwarded into the tunnel - see ListenTunnel).
+            foreach (IPEndPoint remoteEp in this._remoteRelayEps)
+            {
+                this._tunnelSocket.SendTo(tunnelPacket, remoteEp);
+                Console.WriteLine($"[{this._config.SiteName}] TUNNEL -> {remoteEp} (src: {srcIp}:{srcPort}, dstPort: {dstPort})");
+            }
         }
 
         #endregion
@@ -524,7 +571,7 @@ namespace RoonBroadcastRelay
                     Array.Copy(buffer, packet, received);
 
                     // Forward to tunnel with extended header
-                    if (this._tunnelSocket != null && this._remoteRelayEp != null)
+                    if (this._tunnelSocket != null && this._remoteRelayEps.Count > 0)
                     {
                         this.SendToTunnelExtended(packet, senderEp.Address, senderEp.Port, port);
                     }

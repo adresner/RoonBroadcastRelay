@@ -1,0 +1,17 @@
+[Unit]
+# Parallel install of the 3-site mesh build of RoonBroadcastRelay.
+# Runs from /opt/roonrelay-mesh/ so it does not touch the existing
+# /opt/roonrelay/ install or its roonrelay.service unit.
+Description=Roon Broadcast Relay (3-site mesh build)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/roonrelay-mesh
+ExecStart=/opt/roonrelay-mesh/RoonBroadcastRelay /opt/roonrelay-mesh/appsettings.json
+Restart=always
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
